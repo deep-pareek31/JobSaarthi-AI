@@ -3,6 +3,6 @@
     <item
         android:width="66dp"
         android:height="66dp"
-        android:drawable="@drawable/ic_jobsaarthi_logo_1790406930563"
+        android:drawable="@drawable/jobsarthi_logo_1791005150274"
         android:gravity="center" />
 </layer-list>

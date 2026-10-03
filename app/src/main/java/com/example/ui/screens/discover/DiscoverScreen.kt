@@ -25,10 +25,12 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.automirrored.filled.Sort
+import androidx.compose.material.icons.filled.Alarm
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.FilterList
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.TravelExplore
 import androidx.compose.material3.Button
@@ -81,6 +83,11 @@ fun DiscoverScreen(
     var selectedFilterChip by remember { mutableStateOf("ALL") }
     var selectedSort by remember { mutableStateOf("newest") }
     var showSortMenu by remember { mutableStateOf(false) }
+    var showCreateAlertDialog by remember { mutableStateOf(false) }
+    var showJobAlertsModal by remember { mutableStateOf(false) }
+
+    val alertService = remember { com.example.data.service.JobAlertService.getInstance() }
+    val alerts by alertService.alerts.collectAsStateWithLifecycle()
 
     val focusManager = LocalFocusManager.current
 
@@ -197,6 +204,49 @@ fun DiscoverScreen(
                             containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f)
                         ),
                         modifier = Modifier.testTag("live_web_jobs_chip")
+                    )
+
+                    // Save Search as Job Alert Chip
+                    FilterChip(
+                        selected = false,
+                        onClick = { showCreateAlertDialog = true },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Alarm,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
+                        label = {
+                            Text(
+                                "Save Alert",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        colors = FilterChipDefaults.filterChipColors(
+                            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+                        ),
+                        modifier = Modifier.testTag("save_alert_chip")
+                    )
+
+                    // View Job Alerts Manager Chip
+                    FilterChip(
+                        selected = false,
+                        onClick = { showJobAlertsModal = true },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.NotificationsActive,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        },
+                        label = {
+                            Text("Alerts (${alerts.count { it.isActive }})", style = MaterialTheme.typography.labelSmall)
+                        },
+                        modifier = Modifier.testTag("view_alerts_chip")
                     )
 
                     val chips = listOf(
@@ -463,6 +513,41 @@ fun DiscoverScreen(
                         }
                     )
                 }
+            }
+        }
+    }
+
+    if (showCreateAlertDialog) {
+        com.example.ui.screens.alerts.CreateJobAlertDialog(
+            initialQuery = searchQuery,
+            initialLocation = if (selectedFilterChip == "BENGALURU") "Bengaluru" else "Any Location",
+            userEmail = "deep.pareek31@gmail.com",
+            onDismiss = { showCreateAlertDialog = false },
+            onCreate = { query, loc, type, freq, email ->
+                alertService.createAlert(query, loc, type, freq, email)
+                showCreateAlertDialog = false
+            }
+        )
+    }
+
+    if (showJobAlertsModal) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { showJobAlertsModal = false },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                com.example.ui.screens.alerts.JobAlertsScreen(
+                    alertService = alertService,
+                    availableJobs = if (uiState.searchResults.isNotEmpty()) uiState.searchResults else com.example.data.repository.DefaultJobData.curatedJobDetails.map { com.example.data.repository.DefaultJobData.toJobDto(it) },
+                    userEmail = "deep.pareek31@gmail.com",
+                    onBack = { showJobAlertsModal = false }
+                )
             }
         }
     }

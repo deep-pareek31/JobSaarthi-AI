@@ -14,6 +14,9 @@ interface UserDao {
     @Query("SELECT * FROM cached_users LIMIT 1")
     suspend fun getCurrentUserSync(): UserEntity?
 
+    @Query("SELECT * FROM cached_users WHERE LOWER(email) = LOWER(:email) LIMIT 1")
+    suspend fun getUserByEmail(email: String): UserEntity?
+
     @Query("UPDATE cached_users SET subscriptionTier = :tier, planName = :planName")
     suspend fun updateSubscription(tier: String, planName: String)
 

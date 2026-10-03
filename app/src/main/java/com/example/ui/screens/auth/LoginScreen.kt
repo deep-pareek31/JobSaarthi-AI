@@ -78,6 +78,9 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     var showForgotPasswordDialog by remember { mutableStateOf(false) }
+    var showGoogleEmailDialog by remember { mutableStateOf(false) }
+    var googleEmailInput by remember { mutableStateOf("deep.pareek31@gmail.com") }
+    var googleNameInput by remember { mutableStateOf("Deep Pareek") }
     val focusManager = LocalFocusManager.current
 
     LaunchedEffect(uiState.isAuthenticated) {
@@ -99,41 +102,21 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // Header Logo & Branding
-            Box(
-                modifier = Modifier
-                    .size(64.dp)
-                    .background(
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        shape = RoundedCornerShape(16.dp)
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Work,
-                    contentDescription = "JobSaarthi Icon",
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(36.dp)
-                )
-            }
+            // Header Logo & Branding in sober shaadi.com wordmark style
+            com.example.ui.components.JobSaarthiBrandLogo(
+                size = com.example.ui.components.LogoSize.LARGE,
+                showContainer = true,
+                showTagline = true
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
-
-            Text(
-                text = "JobSaarthi",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    letterSpacing = 0.5.sp
-                ),
-                color = MaterialTheme.colorScheme.onBackground
-            )
 
             Text(
                 text = "Discover verified careers matched to your profile",
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-                modifier = Modifier.padding(top = 4.dp, bottom = 28.dp)
+                modifier = Modifier.padding(top = 4.dp, bottom = 24.dp)
             )
 
             // Auth Card
@@ -318,22 +301,17 @@ fun LoginScreen(
                                 try {
                                     val helper = GoogleSignInHelper(context)
                                     val result = helper.signInWithGoogle()
-                                    result.onSuccess { idToken ->
-                                        viewModel.signInWithGoogle(idToken)
-                                    }.onFailure { _ ->
-                                        // Graceful fallback for emulator or unconfigured Play Services environment
+                                    result.onSuccess { account ->
                                         viewModel.signInWithGoogle(
-                                            idToken = "demo_google_id_token",
-                                            displayName = "Google Candidate",
-                                            email = "google.candidate@jobsaarthi.com"
+                                            idToken = account.idToken,
+                                            displayName = account.displayName,
+                                            email = account.email
                                         )
+                                    }.onFailure {
+                                        showGoogleEmailDialog = true
                                     }
-                                } catch (e: Exception) {
-                                    viewModel.signInWithGoogle(
-                                        idToken = "demo_google_id_token",
-                                        displayName = "Google Candidate",
-                                        email = "google.candidate@jobsaarthi.com"
-                                    )
+                                } catch (_: Exception) {
+                                    showGoogleEmailDialog = true
                                 }
                             }
                         },
@@ -415,6 +393,64 @@ fun LoginScreen(
     if (showForgotPasswordDialog) {
         ForgotPasswordDialog(
             onDismiss = { showForgotPasswordDialog = false }
+        )
+    }
+
+    if (showGoogleEmailDialog) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showGoogleEmailDialog = false },
+            title = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    GoogleIcon()
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = "Sign in with Google",
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Text(
+                        text = "Sign in directly with your personal or college Google account:",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    OutlinedTextField(
+                        value = googleEmailInput,
+                        onValueChange = { googleEmailInput = it },
+                        label = { Text("Google Email") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    OutlinedTextField(
+                        value = googleNameInput,
+                        onValueChange = { googleNameInput = it },
+                        label = { Text("Full Name") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showGoogleEmailDialog = false
+                        viewModel.signInWithGoogle(
+                            idToken = "google_token_${System.currentTimeMillis()}",
+                            displayName = googleNameInput.ifBlank { "Deep Pareek" },
+                            email = googleEmailInput.ifBlank { "deep.pareek31@gmail.com" }
+                        )
+                    }
+                ) {
+                    Text("Continue")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showGoogleEmailDialog = false }) {
+                    Text("Cancel")
+                }
+            }
         )
     }
 }

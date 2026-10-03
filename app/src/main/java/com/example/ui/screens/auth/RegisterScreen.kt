@@ -95,6 +95,14 @@ fun RegisterScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            com.example.ui.components.JobSaarthiBrandLogo(
+                size = com.example.ui.components.LogoSize.MEDIUM,
+                showContainer = true,
+                showTagline = true
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
             Text(
                 text = "Create Account",
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
@@ -313,8 +321,12 @@ fun RegisterScreen(
                                 try {
                                     val helper = GoogleSignInHelper(context)
                                     val result = helper.signInWithGoogle()
-                                    result.onSuccess { idToken ->
-                                        viewModel.signInWithGoogle(idToken)
+                                    result.onSuccess { account ->
+                                        viewModel.signInWithGoogle(
+                                            idToken = account.idToken,
+                                            displayName = account.displayName ?: fullName.ifBlank { "Google Candidate" },
+                                            email = account.email ?: email.ifBlank { "google.candidate@jobsaarthi.com" }
+                                        )
                                     }.onFailure { _ ->
                                         viewModel.signInWithGoogle(
                                             idToken = "google_token_sample",

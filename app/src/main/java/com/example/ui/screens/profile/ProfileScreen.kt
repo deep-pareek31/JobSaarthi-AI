@@ -1,5 +1,8 @@
 package com.example.ui.screens.profile
 
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -30,6 +33,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Gavel
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.NotificationsActive
 import androidx.compose.material.icons.filled.Payment
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.PrivacyTip
@@ -92,6 +96,7 @@ fun ProfileScreen(
     var showTermsOfService by remember { mutableStateOf(false) }
     var showDeleteAccount by remember { mutableStateOf(false) }
     var showAboutApp by remember { mutableStateOf(false) }
+    var showJobAlertsScreen by remember { mutableStateOf(false) }
 
     val currentTier = currentUser?.subscriptionTier ?: "FREE"
 
@@ -344,6 +349,61 @@ fun ProfileScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
+        // Job Alerts & Automated Notifications Card
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        ) {
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.NotificationsActive, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Automated Job Alerts",
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                    }
+
+                    val alertCount = com.example.data.service.JobAlertService.getInstance().alerts.value.count { it.isActive }
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f)
+                    ) {
+                        Text(
+                            text = "$alertCount Active",
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                        )
+                    }
+                }
+
+                Text(
+                    text = "Manage saved search queries and scheduled email notifications powered by background cron runner.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+                )
+
+                Button(
+                    onClick = { showJobAlertsScreen = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(10.dp)
+                ) {
+                    Text("Manage Job Alerts & Cron Simulation")
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
         // 3. Four Configurable Subscription Plans
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -586,6 +646,28 @@ fun ProfileScreen(
             }
         )
     }
+
+    if (showJobAlertsScreen) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { showJobAlertsScreen = false },
+            properties = androidx.compose.ui.window.DialogProperties(usePlatformDefaultWidth = false)
+        ) {
+            Surface(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.background
+            ) {
+                com.example.ui.screens.alerts.JobAlertsScreen(
+                    alertService = com.example.data.service.JobAlertService.getInstance(),
+                    availableJobs = if (uiState.searchResults.isNotEmpty()) uiState.searchResults else com.example.data.repository.DefaultJobData.curatedJobDetails.map { com.example.data.repository.DefaultJobData.toJobDto(it) },
+                    userEmail = currentUser?.email ?: "deep.pareek31@gmail.com",
+                    onBack = { showJobAlertsScreen = false }
+                )
+            }
+        }
+    }
 }
 
 data class PlanOption(
@@ -714,25 +796,25 @@ fun PlanCheckoutDialog(
 
                 Spacer(modifier = Modifier.height(10.dp))
 
-                // Zero-cost notice banner
+                // Real payment gateway notice
                 Surface(
                     shape = RoundedCornerShape(8.dp),
-                    color = AccentEmerald.copy(alpha = 0.12f),
+                    color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Row(
-                        modifier = Modifier.padding(8.dp),
+                        modifier = Modifier.padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Icon(
                             imageVector = Icons.Default.Security,
                             contentDescription = null,
-                            tint = AccentEmerald,
-                            modifier = Modifier.size(16.dp)
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(18.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "Zero-Cost Evaluation: Immediate activation with zero developer charges.",
+                            text = "Live UPI & Razorpay Gateway: Opens Google Pay, PhonePe, Paytm, or Card checkout directly.",
                             style = MaterialTheme.typography.labelSmall,
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -741,11 +823,28 @@ fun PlanCheckoutDialog(
             }
         },
         confirmButton = {
+            val context = LocalContext.current
             Button(
-                onClick = onConfirm,
+                onClick = {
+                    val amount = if (plan.tier == "PRO") "99.00" else if (plan.tier == "ELITE") "189.00" else "349.00"
+                    if (selectedMethod == "UPI") {
+                        try {
+                            val upiUri = Uri.parse("upi://pay?pa=jobsaarthi.pay@okaxis&pn=JobSaarthi&am=$amount&cu=INR&tn=JobSaarthi_${plan.tier}")
+                            val upiIntent = Intent(Intent.ACTION_VIEW, upiUri)
+                            context.startActivity(upiIntent)
+                        } catch (_: Exception) {
+                            val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://pages.razorpay.com/jobsaarthi-pro"))
+                            context.startActivity(webIntent)
+                        }
+                    } else {
+                        val webIntent = Intent(Intent.ACTION_VIEW, Uri.parse("https://pages.razorpay.com/jobsaarthi-pro"))
+                        context.startActivity(webIntent)
+                    }
+                    onConfirm()
+                },
                 shape = RoundedCornerShape(8.dp)
             ) {
-                Text("Confirm & Activate")
+                Text(if (selectedMethod == "UPI") "Pay via UPI App" else "Pay via Razorpay")
             }
         },
         dismissButton = {

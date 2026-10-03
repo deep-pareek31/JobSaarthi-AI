@@ -1,6 +1,6 @@
 import './globals.css';
 import Link from 'next/link';
-import { Briefcase, Compass, ShieldCheck, Sparkles, User, Bookmark, Smartphone } from 'lucide-react';
+import { Briefcase, Compass, ShieldCheck, Sparkles, User, Bookmark, Bell } from 'lucide-react';
 
 export const metadata = {
   title: 'JobSaarthi - AI-Guided Career Discovery & Real Job Search Platform',
@@ -18,24 +18,27 @@ export default function RootLayout({
         {/* Navigation Bar */}
         <header className="sticky top-0 z-50 backdrop-blur-md bg-white/90 border-b border-slate-200">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2.5 group">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-700 to-violet-800 flex items-center justify-center text-white shadow-md shadow-indigo-200 group-hover:scale-105 transition-transform">
-                <Briefcase className="w-5 h-5 text-white" />
-              </div>
-              <div className="flex flex-col">
-                <span className="font-extrabold text-xl tracking-tight text-slate-900">
-                  Job<span className="text-indigo-600">Saarthi</span>
+            {/* shaadi.com-style typographic wordmark logo */}
+            <Link href="/" className="flex items-center gap-2 group">
+              <div className="px-3.5 py-1.5 rounded-xl bg-[#0B192C] border border-slate-800 shadow-sm group-hover:scale-105 transition-transform flex items-center gap-1">
+                <span className="font-black text-xl tracking-tight text-white">
+                  job<span className="text-sky-400">saarthi</span>
                 </span>
-                <span className="text-[10px] text-slate-500 font-medium -mt-1 tracking-wider uppercase">
-                  Career Navigator
-                </span>
+                <span className="w-2 h-2 rounded-full bg-amber-400 mb-2"></span>
               </div>
+              <span className="hidden sm:inline-block text-[9px] text-slate-500 font-bold tracking-widest uppercase bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
+                PORTAL
+              </span>
             </Link>
 
             <nav className="hidden md:flex items-center gap-7 text-sm font-semibold text-slate-600">
               <Link href="/jobs" className="hover:text-indigo-600 transition-colors flex items-center gap-1.5">
                 <Compass className="w-4 h-4" />
                 Live Jobs
+              </Link>
+              <Link href="/alerts" className="hover:text-indigo-600 transition-colors flex items-center gap-1.5">
+                <Bell className="w-4 h-4 text-sky-500" />
+                Job Alerts
               </Link>
               <Link href="/tracker" className="hover:text-indigo-600 transition-colors flex items-center gap-1.5">
                 <Bookmark className="w-4 h-4" />
